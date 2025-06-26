@@ -155,8 +155,8 @@ mod tests {
     }
 
     #[test]
-    fn test_scan() {
-        let colors = parse(include_str!("../tests/test.json"));
+    fn test_parse() {
+        let colors = parse(include_str!("../../tests/test.json"));
 
         assert_eq!(colors.len(), 8);
         assert_eq!(colors[0], ColorNode::must_parse("#999", 2, 15));

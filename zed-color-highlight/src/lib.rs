@@ -4,7 +4,7 @@ use zed_extension_api::{self as zed, Result};
 const GITHUB_REPO: &str = "huacnlee/color-lsp";
 const BIN_NAME: &str = "color-lsp";
 
-struct AutoCorrectExtension {
+struct ColorHighlightExtension {
     cached_binary_path: Option<String>,
 }
 
@@ -36,7 +36,7 @@ fn update_status(id: &zed::LanguageServerId, status: Status) {
     }
 }
 
-impl AutoCorrectExtension {
+impl ColorHighlightExtension {
     fn language_server_binary_path(
         &mut self,
         id: &zed::LanguageServerId,
@@ -124,7 +124,7 @@ impl AutoCorrectExtension {
     }
 }
 
-impl zed::Extension for AutoCorrectExtension {
+impl zed::Extension for ColorHighlightExtension {
     fn new() -> Self {
         Self {
             cached_binary_path: None,
@@ -144,10 +144,10 @@ impl zed::Extension for AutoCorrectExtension {
 
         Ok(zed::Command {
             command,
-            args: vec!["server".to_string()],
+            args: vec![],
             env: Default::default(),
         })
     }
 }
 
-zed::register_extension!(AutoCorrectExtension);
+zed::register_extension!(ColorHighlightExtension);
