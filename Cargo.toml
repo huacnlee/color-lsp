@@ -1,14 +1,5 @@
-[package]
-name = "color-lsp"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = ["color-lsp", "zed-color-highlight"]
 
-[dependencies]
-tokio = { version = "1.37.0", features = [
-    "io-util",
-    "io-std",
-    "macros",
-    "rt-multi-thread",
-] }
-tower-lsp = "0.20.0"
-csscolorparser = "0.7"
+default-members = ["color-lsp"]
+resolver = "2"

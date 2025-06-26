@@ -1,0 +1,29 @@
+id = "color-highlight"
+name = "Color Highlight"
+description = "Highlight colors in your editor based on color-lsp."
+version = "0.1.0"
+schema_version = 1
+authors = ["Jason Lee <huacnlee@gmail.com>"]
+repository = "https://github.com/huacnlee/color-lsp"
+
+[language_servers.color-lsp]
+name = "ColorLSP Server"
+languages = [
+    "HTML",
+    "JSON",
+    "ERB",
+    "JavaScript",
+    "TypeScript",
+    "CSS",
+    "JSX",
+    "TSX",
+    "Vue.js",
+    "YAML",
+    "TOML",
+    "XML",
+    "Rust",
+    "Ruby",
+    "Python",
+    "Go",
+]
+code_action_kinds = []

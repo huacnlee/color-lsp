@@ -1,4 +1,4 @@
 /target
 /release-dist
-**/*/target/
 **/*.wasm
+**/*/target/
