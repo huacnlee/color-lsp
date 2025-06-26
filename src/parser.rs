@@ -77,7 +77,7 @@ pub(super) fn parse(text: &str) -> Vec<ColorNode> {
                         continue;
                     }
                 }
-                'a'..'z' | 'A'..'Z' | '(' => {
+                'a'..='z' | 'A'..='Z' | '(' => {
                     token.push(c);
 
                     match token.as_ref() {
@@ -118,7 +118,7 @@ pub(super) fn parse(text: &str) -> Vec<ColorNode> {
 }
 
 fn match_color(part: &str, line_ix: usize, offset: usize) -> Option<ColorNode> {
-    if let Ok(color) = csscolorparser::parse(&part) {
+    if let Ok(color) = csscolorparser::parse(part) {
         Some(ColorNode::new(part, color, line_ix + 1, offset + 1))
     } else {
         None
@@ -127,7 +127,7 @@ fn match_color(part: &str, line_ix: usize, offset: usize) -> Option<ColorNode> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{ColorNode, match_color, parse};
+    use crate::parser::{match_color, parse, ColorNode};
 
     #[test]
     fn test_match_color() {

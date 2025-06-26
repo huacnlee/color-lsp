@@ -41,7 +41,7 @@ impl Backend {
 
     fn remove_document(&self, uri: &Url) {
         self.documents.write().unwrap().remove(uri);
-        self.colors.write().unwrap().remove(&uri);
+        self.colors.write().unwrap().remove(uri);
         self.diagnostics.write().unwrap().remove(uri);
     }
 
