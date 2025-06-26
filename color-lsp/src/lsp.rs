@@ -45,14 +45,6 @@ impl Backend {
         self.diagnostics.write().unwrap().remove(uri);
     }
 
-    async fn send_colors(&self, document: &TextDocumentItem, colors: Vec<ColorInformation>) {
-        if let Ok(mut map) = self.colors.write() {
-            map.entry(document.uri.clone())
-                .and_modify(|old_colors| old_colors.extend_from_slice(&colors))
-                .or_insert_with(|| colors.clone());
-        }
-    }
-
     async fn send_diagnostics(&self, document: &TextDocumentItem, diagnostics: Vec<Diagnostic>) {
         if let Ok(mut map) = self.diagnostics.write() {
             map.entry(document.uri.clone())
@@ -69,10 +61,6 @@ impl Backend {
         self.client
             .publish_diagnostics(uri.clone(), vec![], None)
             .await;
-    }
-
-    async fn clear_colors(&self, uri: &Url) {
-        self.colors.write().unwrap().remove(uri);
     }
 
     async fn clear_all_diagnostic(&self) {
@@ -98,19 +86,22 @@ impl Backend {
             let info = ColorInformation {
                 range: lsp_types::Range {
                     start: lsp_types::Position {
-                        line: node.loc.0 as u32,
-                        character: node.loc.1 as u32,
+                        line: node.loc.0.saturating_sub(1) as u32,
+                        character: node.loc.1.saturating_sub(1) as u32,
                     },
                     end: lsp_types::Position {
-                        line: node.loc.0 as u32,
-                        character: (node.loc.1 + node.matched.len()) as u32,
+                        line: node.loc.0.saturating_sub(1) as u32,
+                        character: (node.loc.1.saturating_sub(1) + node.matched.len()) as u32,
                     },
                 },
                 color: node.lsp_color(),
             };
             colors.push(info);
         }
-        self.send_colors(document, colors);
+
+        if let Ok(mut map) = self.colors.write() {
+            map.insert(document.uri.clone(), colors);
+        }
     }
 }
 
@@ -143,7 +134,7 @@ impl LanguageServer for Backend {
                     },
                 )),
                 document_formatting_provider: Some(OneOf::Left(true)),
-                document_highlight_provider: Some(OneOf::Left(true)),
+                color_provider: Some(ColorProviderCapability::Simple(true)),
                 code_action_provider: Some(CodeActionProviderCapability::Options(
                     CodeActionOptions {
                         code_action_kinds: Some(vec![
@@ -167,6 +158,7 @@ impl LanguageServer for Backend {
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let DidOpenTextDocumentParams { text_document } = params;
         self.upsert_document(Arc::new(text_document.clone()));
+        self.scan_document(&text_document).await;
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
@@ -203,18 +195,26 @@ impl LanguageServer for Backend {
     }
 
     async fn document_color(&self, params: DocumentColorParams) -> Result<Vec<ColorInformation>> {
-        if let Some(document) = self.get_document(&params.text_document.uri) {
-            let colors = self
-                .colors
-                .read()
-                .unwrap()
-                .get(&document.uri)
-                .cloned()
-                .unwrap_or_default();
-            Ok(colors)
-        } else {
-            Ok(vec![])
-        }
+        // self.client
+        //     .log_message(
+        //         MessageType::INFO,
+        //         format!("-- document_color: {}", params.text_document.uri),
+        //     )
+        //     .await;
+
+        let colors = self
+            .colors
+            .read()
+            .unwrap()
+            .get(&params.text_document.uri)
+            .cloned()
+            .unwrap_or_default();
+
+        // self.client
+        //     .log_message(MessageType::INFO, format!("document_color {:?}\n", colors))
+        //     .await;
+
+        Ok(colors)
     }
 }
 

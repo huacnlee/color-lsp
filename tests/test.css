@@ -1,0 +1,10 @@
+:root {
+  --comment: #999;
+  --background: #ffffff;
+  --error: #ff000099;
+  --success: #00ff00;
+  --rgba: rgba(255, 0, 0, 0.5);
+  --rgb: rgb(255, 0, 0);
+  --hsla: hsla(0, 100%, 50%, 0.5);
+  --hsl: hsl(0, 100%, 50%);
+}

@@ -132,16 +132,18 @@ mod tests {
     #[test]
     fn test_match_color() {
         let cases = vec![
-            "#999999",
-            "#c0c0c0",
-            "#F0F0F0aa",
-            "#EfEfEfcc",
-            "#F0f",
-            "rgb(100%,0%,0%)",
-            "rgb(255 0 0)",
+            "#A0F0F0",
+            "#2eC8f1",
+            "#AAF0F0aa",
+            "#AAF0F033",
+            "#0f0E",
+            "#F2c",
+            "rgb(80%,80%,20%)",
+            "rgb(255 100 0)",
             "rgba(255, 0, 0, 0.5)",
-            "rgb(255, 0, 0)",
-            "hsl(0, 100%, 50%)",
+            "rgb(100, 200, 100)",
+            "hsl(225, 100%, 70%)",
+            "hsla(20, 100%, 50%, .5)",
         ];
 
         for case in cases {
@@ -149,8 +151,8 @@ mod tests {
         }
 
         assert_eq!(
-            match_color("#ff22ff", 1, 10),
-            Some(ColorNode::must_parse("#ff22ff", 2, 11))
+            match_color("#e7b911", 1, 10),
+            Some(ColorNode::must_parse("#e7b911", 2, 11))
         );
     }
 
@@ -161,17 +163,23 @@ mod tests {
         assert_eq!(colors.len(), 8);
         assert_eq!(colors[0], ColorNode::must_parse("#999", 2, 15));
         assert_eq!(colors[1], ColorNode::must_parse("#FFFFFF", 3, 18));
-        assert_eq!(colors[2], ColorNode::must_parse("#ff000099", 4, 13));
-        assert_eq!(colors[3], ColorNode::must_parse("#00FF00", 5, 15));
+        assert_eq!(colors[2], ColorNode::must_parse("#ff003c99", 4, 13));
+        assert_eq!(colors[3], ColorNode::must_parse("#3cBD00", 5, 15));
         assert_eq!(
             colors[4],
-            ColorNode::must_parse("rgba(255, 0, 0, 0.5)", 6, 12)
+            ColorNode::must_parse("rgba(255, 252, 0, 0.5)", 6, 12)
         );
-        assert_eq!(colors[5], ColorNode::must_parse("rgb(255, 0, 0)", 7, 11));
+        assert_eq!(
+            colors[5],
+            ColorNode::must_parse("rgb(100, 200, 100)", 7, 11)
+        );
         assert_eq!(
             colors[6],
-            ColorNode::must_parse("hsla(0, 100%, 50%, 0.5)", 8, 12)
+            ColorNode::must_parse("hsla(20, 100%, 50%, .5)", 8, 12)
         );
-        assert_eq!(colors[7], ColorNode::must_parse("hsl(0, 100%, 50%)", 9, 11));
+        assert_eq!(
+            colors[7],
+            ColorNode::must_parse("hsl(225, 100%, 70%)", 9, 11)
+        );
     }
 }

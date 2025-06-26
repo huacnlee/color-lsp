@@ -1,10 +1,10 @@
 {
   "comment": "#999",
   "background": "#FFFFFF",
-  "error": "#ff000099",
-  "success": "#00FF00",
-  "rgba": "rgba(255, 0, 0, 0.5)",
-  "rgb": "rgb(255, 0, 0)",
-  "hsla": "hsla(0, 100%, 50%, 0.5)",
-  "hsl": "hsl(0, 100%, 50%)"
+  "error": "#ff003c99",
+  "success": "#3cBD00",
+  "rgba": "rgba(255, 252, 0, 0.5)",
+  "rgb": "rgb(100, 200, 100)",
+  "hsla": "hsla(20, 100%, 50%, .5)",
+  "hsl": "hsl(225, 100%, 70%)"
 }

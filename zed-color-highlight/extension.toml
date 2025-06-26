@@ -11,6 +11,7 @@ name = "ColorLSP Server"
 languages = [
     "HTML",
     "JSON",
+    "JSONC",
     "ERB",
     "JavaScript",
     "TypeScript",

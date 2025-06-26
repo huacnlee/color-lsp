@@ -1,3 +1,4 @@
 build:
 	cargo build --release
-	sudo cp -f target/release/color-lsp /usr/local/bin/color-lsp
+	sudo rm /usr/local/bin/color-lsp
+	sudo cp target/release/color-lsp /usr/local/bin/
