@@ -26,7 +26,5 @@ jobs:
           key: ubuntu-test-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Test
         run: |
-          cargo install cargo-machete
-          cargo machete
           cargo clippy
           cargo test
