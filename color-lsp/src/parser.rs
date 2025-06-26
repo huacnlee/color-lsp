@@ -60,7 +60,7 @@ pub(super) fn parse(text: &str) -> Vec<ColorNode> {
         let mut offset = 0;
         let mut token = String::new();
         while offset < line_text.len() {
-            let c = line_text.chars().nth(offset).unwrap();
+            let c = line_text.chars().nth(offset).unwrap_or(' ');
             match c {
                 '#' => {
                     token.clear();
