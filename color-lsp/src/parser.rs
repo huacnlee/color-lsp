@@ -137,8 +137,12 @@ pub(super) fn parse(text: &str) -> Vec<ColorNode> {
                     }
                 }
                 'a'..='z' | 'A'..='Z' | '(' => {
-                    token.push(c);
+                    // Avoid `Ok(hsla(`, to get `hsla(`
+                    if token.contains('(') {
+                        token.clear();
+                    }
 
+                    token.push(c);
                     match token.as_ref() {
                         // Ref https://github.com/mazznoer/csscolorparser-rs
                         "hsl(" | "hsla(" | "rgb(" | "rgba(" | "hwb(" | "hwba(" | "oklab("
@@ -298,6 +302,29 @@ mod tests {
         assert_eq!(
             colors[7],
             ColorNode::must_parse("hsl(225, 100%, 70%)", 9, 11)
+        );
+
+        let colors = parse(include_str!("../../tests/test.rs"));
+        assert_eq!(colors.len(), 5);
+        assert_eq!(
+            colors[0],
+            ColorNode::must_parse("hsla(0.3, 1.0, 0.5, 1.0)", 1, 10)
+        );
+        assert_eq!(
+            colors[1],
+            ColorNode::must_parse("hsla(0.58, 1.0, 0.5, 1.0)", 2, 10)
+        );
+        assert_eq!(
+            colors[2],
+            ColorNode::must_parse("hsla(0.85, 0.9, 0.6, 1.0)", 3, 10)
+        );
+        assert_eq!(
+            colors[3],
+            ColorNode::must_parse("hsla(0.75, 0.9, 0.65, 1.0)", 4, 13)
+        );
+        assert_eq!(
+            colors[4],
+            ColorNode::must_parse("hsla(0.45, 0.7, 0.75, 1.0)", 5, 14)
         );
     }
 }
