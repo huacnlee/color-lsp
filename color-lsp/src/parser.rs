@@ -1,4 +1,4 @@
-use csscolorparser::Color;
+use csscolorparser::{Color, ParseColorError};
 use tower_lsp::lsp_types;
 
 #[derive(Debug, Clone)]
@@ -29,13 +29,13 @@ impl ColorNode {
 
     #[allow(unused)]
     fn must_parse(matched: &str, line: usize, col: usize) -> Self {
+        if let Ok(color) = try_parse_gpui_color(matched) {
+            return Self::new(matched, color, line, col);
+        }
+
         let color =
             csscolorparser::parse(matched).expect("The `matched` should be a valid CSS color");
-        Self {
-            matched: matched.to_string(),
-            loc: (line, col),
-            color,
-        }
+        Self::new(matched, color, line, col)
     }
 
     pub(crate) fn lsp_color(&self) -> lsp_types::Color {
@@ -46,6 +46,64 @@ impl ColorNode {
             alpha: self.color.a,
         }
     }
+}
+
+/// Try to parse gpui color that values are 0..1
+fn try_parse_gpui_color(s: &str) -> Result<Color, ParseColorError> {
+    let s = s.trim();
+
+    /// Parse and ensure all value in 0..1
+    fn parse_val(s: &str) -> Option<f32> {
+        s.parse()
+            .ok()
+            .and_then(|v| (0.0..=1.0).contains(&v).then_some(v))
+    }
+
+    if let (Some(idx), Some(s)) = (s.find('('), s.strip_suffix(')')) {
+        let fname = &s[..idx].trim_end();
+        let mut params = s[idx + 1..]
+            .split(',')
+            .flat_map(str::split_ascii_whitespace);
+
+        let (Some(val0), Some(val1), Some(val2)) = (params.next(), params.next(), params.next())
+        else {
+            return Err(ParseColorError::InvalidFunction);
+        };
+
+        let alpha = if let Some(a) = params.next() {
+            if let Some(v) = parse_val(a) {
+                v.clamp(0.0, 1.0)
+            } else {
+                return Err(ParseColorError::InvalidFunction);
+            }
+        } else {
+            1.0
+        };
+
+        if params.next().is_some() {
+            return Err(ParseColorError::InvalidFunction);
+        }
+
+        if fname.eq_ignore_ascii_case("rgb") || fname.eq_ignore_ascii_case("rgba") {
+            if let (Some(v0), Some(v1), Some(v2)) =
+                (parse_val(val0), parse_val(val1), parse_val(val2))
+            {
+                return Ok(Color::new(v0, v1, v2, alpha));
+            } else {
+                return Err(ParseColorError::InvalidFunction);
+            }
+        } else if fname.eq_ignore_ascii_case("hsl") || fname.eq_ignore_ascii_case("hsla") {
+            if let (Some(v0), Some(v1), Some(v2)) =
+                (parse_val(val0), parse_val(val1), parse_val(val2))
+            {
+                return Ok(Color::from_hsla(v0, v1, v2, alpha));
+            } else {
+                return Err(ParseColorError::InvalidFunction);
+            }
+        }
+    }
+
+    Err(ParseColorError::InvalidUnknown)
 }
 
 fn is_hex_char(c: &char) -> bool {
@@ -127,7 +185,9 @@ fn match_color(part: &str, line_ix: usize, offset: usize) -> Option<ColorNode> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{match_color, parse, ColorNode};
+    use csscolorparser::Color;
+
+    use crate::parser::{match_color, parse, try_parse_gpui_color, ColorNode};
 
     #[test]
     fn test_match_color() {
@@ -144,6 +204,7 @@ mod tests {
             "rgb(100, 200, 100)",
             "hsl(225, 100%, 70%)",
             "hsla(20, 100%, 50%, .5)",
+            "hsla(1., 0.5, 0.5, 1.)",
         ];
 
         for case in cases {
@@ -153,6 +214,72 @@ mod tests {
         assert_eq!(
             match_color("#e7b911", 1, 10),
             Some(ColorNode::must_parse("#e7b911", 2, 11))
+        );
+    }
+
+    #[test]
+    fn test_try_parse_gpui_color() {
+        assert_eq!(
+            try_parse_gpui_color("rgb(1., 0.5, 0.5)"),
+            Ok(Color {
+                r: 1.,
+                g: 0.5,
+                b: 0.5,
+                a: 1.
+            })
+        );
+        assert_eq!(
+            try_parse_gpui_color("rgb(1., 0.5, 0.5, 0.4)"),
+            Ok(Color {
+                r: 1.,
+                g: 0.5,
+                b: 0.5,
+                a: 0.4
+            })
+        );
+        assert!(try_parse_gpui_color("rgb(255., 0., 252.0)").is_err());
+        assert!(try_parse_gpui_color("rgba(255., 0., 252.0, 1.)").is_err());
+
+        assert_eq!(
+            try_parse_gpui_color("hsl(1., 0.5, 0.5)"),
+            Ok(Color {
+                r: 0.75,
+                g: 0.25833344,
+                b: 0.25,
+                a: 1.
+            })
+        );
+        assert_eq!(
+            try_parse_gpui_color("hsla(1., 0.5, 0.5, 0.3)"),
+            Ok(Color {
+                r: 0.75,
+                g: 0.25833344,
+                b: 0.25,
+                a: 0.3
+            })
+        );
+        assert!(try_parse_gpui_color("hsl(240., 0., 50.0)").is_err());
+        assert!(try_parse_gpui_color("hsla(240., 0., 50.0, 1.)").is_err());
+    }
+
+    #[test]
+    fn test_must_parse() {
+        assert_eq!(
+            ColorNode::must_parse("hsla(1., 0.5, 0.5, 1.)", 10, 12),
+            ColorNode {
+                matched: "hsla(1., 0.5, 0.5, 1.)".to_string(),
+                color: Color::from_hsla(1., 0.5, 0.5, 1.),
+                loc: (10, 12)
+            }
+        );
+
+        assert_eq!(
+            ColorNode::must_parse("rgba(1., 0.5, 0.5, 1.)", 10, 12),
+            ColorNode {
+                matched: "rgba(1., 0.5, 0.5, 1.)".to_string(),
+                color: Color::new(1., 0.5, 0.5, 1.),
+                loc: (10, 12)
+            }
         );
     }
 
