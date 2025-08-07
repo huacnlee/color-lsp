@@ -133,7 +133,7 @@ impl LanguageServer for Backend {
                         ..Default::default()
                     },
                 )),
-                document_formatting_provider: Some(OneOf::Left(true)),
+                document_formatting_provider: Some(OneOf::Left(false)),
                 color_provider: Some(ColorProviderCapability::Simple(true)),
                 code_action_provider: Some(CodeActionProviderCapability::Options(
                     CodeActionOptions {
