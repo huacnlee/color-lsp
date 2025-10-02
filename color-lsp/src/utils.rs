@@ -57,17 +57,11 @@ pub(crate) fn color_summary(color: lsp_types::Color) -> String {
 
     let color_link = format!("\n[Color Picker](https://colorpicker.dev/{})", &hex);
 
-    vec![
-        "Colorspace Formats:\n".to_string(),
-        format!("- {}", hex),
-        format!("- {}", hex_alpha),
-        format!("- {}", hsla_percent),
-        format!("- {}", hsla_float),
-        format!("- {}", rgba),
-        format!("- {}", rgba_float),
-        color_link,
-    ]
-    .join("\n")
+    format!(
+        "Colorspace Formats:\n\n```\n{}\n```\n{}",
+        vec![hex, hex_alpha, hsla_percent, hsla_float, rgba, rgba_float].join("\n"),
+        color_link
+    )
 }
 
 pub(crate) fn format_trimmed(x: f32, precision: usize, trim_end_dot: bool) -> String {
@@ -133,12 +127,14 @@ mod tests {
             indoc! {r#"
                 Colorspace Formats:
 
-                - #EECC00
-                - #EECC00FF
-                - hsla(51.4, 100%, 46.7%, 100%)
-                - hsla(0.143, 1., 0.467, 1.)
-                - rgba(238, 204, 0, 100%)
-                - rgba(0.933, 0.8, 0., 1.)
+                ```
+                #EECC00
+                #EECC00FF
+                hsla(51.4, 100%, 46.7%, 100%)
+                hsla(0.143, 1., 0.467, 1.)
+                rgba(238, 204, 0, 100%)
+                rgba(0.933, 0.8, 0., 1.)
+                ```
 
                 [Color Picker](https://colorpicker.dev/#EECC00)"#}
         );
