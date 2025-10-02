@@ -92,7 +92,7 @@ checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
 
 [[package]]
 name = "color-lsp"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "csscolorparser",
  "indoc",
@@ -1134,7 +1134,7 @@ dependencies = [
 
 [[package]]
 name = "zed-color-highlight"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "zed_extension_api",
 ]
