@@ -6,6 +6,8 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{self, *};
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
+use crate::utils::color_summary;
+
 const LSP_NAME: &str = "ColorLSP";
 
 struct Backend {
@@ -143,6 +145,7 @@ impl LanguageServer for Backend {
                         ..Default::default()
                     },
                 )),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
                 ..ServerCapabilities::default()
             },
         })
@@ -186,6 +189,29 @@ impl LanguageServer for Backend {
     async fn did_save(&self, _: DidSaveTextDocumentParams) {}
 
     async fn formatting(&self, _: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        Ok(None)
+    }
+
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let uri = params.text_document_position_params.text_document.uri;
+        let position = params.text_document_position_params.position;
+
+        if let Some(colors) = self.colors.read().unwrap().get(&uri) {
+            for color_info in colors.iter() {
+                if position >= color_info.range.start && position <= color_info.range.end {
+                    let contents = HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: color_summary(color_info.color),
+                    });
+
+                    return Ok(Some(Hover {
+                        contents,
+                        range: Some(color_info.range),
+                    }));
+                }
+            }
+        }
+
         Ok(None)
     }
 

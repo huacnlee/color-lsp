@@ -92,9 +92,10 @@ checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
 
 [[package]]
 name = "color-lsp"
-version = "0.1.5"
+version = "0.1.4"
 dependencies = [
  "csscolorparser",
+ "indoc",
  "tokio",
  "tower-lsp",
 ]
@@ -380,6 +381,12 @@ dependencies = [
  "hashbrown 0.15.4",
  "serde",
 ]
+
+[[package]]
+name = "indoc"
+version = "2.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4c7245a08504955605670dbf141fceab975f15ca21570696aebe9d2e71576bd"
 
 [[package]]
 name = "itoa"

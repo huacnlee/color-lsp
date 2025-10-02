@@ -1,5 +1,6 @@
 mod lsp;
 mod parser;
+mod utils;
 
 #[tokio::main]
 async fn main() {

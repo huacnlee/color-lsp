@@ -12,3 +12,4 @@ tokio = { version = "1.37.0", features = [
 ] }
 tower-lsp = "0.20.0"
 csscolorparser = "0.7"
+indoc = "2"
