@@ -85,13 +85,10 @@ impl Backend {
         for node in nodes.iter() {
             let info = ColorInformation {
                 range: lsp_types::Range {
-                    start: lsp_types::Position {
-                        line: node.loc.0.saturating_sub(1) as u32,
-                        character: node.loc.1.saturating_sub(1) as u32,
-                    },
+                    start: node.position,
                     end: lsp_types::Position {
-                        line: node.loc.0.saturating_sub(1) as u32,
-                        character: (node.loc.1.saturating_sub(1) + node.matched.len()) as u32,
+                        line: node.position.line,
+                        character: node.position.character + node.matched.len() as u32,
                     },
                 },
                 color: node.lsp_color(),

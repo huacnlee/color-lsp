@@ -5,24 +5,26 @@ use tower_lsp::lsp_types;
 pub struct ColorNode {
     pub color: Color,
     pub matched: String,
-    /// Line, Column (1-based) of the node in the text.
-    pub loc: (usize, usize),
+    pub position: lsp_types::Position,
 }
 
 impl Eq for ColorNode {}
 impl PartialEq for ColorNode {
     fn eq(&self, other: &Self) -> bool {
         self.matched == other.matched
-            && self.loc == other.loc
+            && self.position == other.position
             && self.color.to_css_hex() == other.color.to_css_hex()
     }
 }
 
 impl ColorNode {
-    fn new(matched: &str, color: Color, line: usize, col: usize) -> Self {
+    /// Create a new ColorNode
+    ///
+    /// `line`, `character` is 0-based
+    fn new(matched: &str, color: Color, line: usize, character: usize) -> Self {
         Self {
             matched: matched.to_string(),
-            loc: (line, col),
+            position: lsp_types::Position::new(line as u32, character as u32),
             color,
         }
     }
@@ -116,23 +118,25 @@ pub(super) fn parse(text: &str) -> Vec<ColorNode> {
 
     for (ix, line_text) in text.lines().enumerate() {
         let line_len = line_text.len();
+        // offset is 0-based character index
         let mut offset = 0;
         let mut token = String::new();
-        while offset < line_text.len() {
+        while offset < line_text.chars().count() {
             let c = line_text.chars().nth(offset).unwrap_or(' ');
             match c {
                 '#' => {
                     token.clear();
 
                     // Find the hex color code
-                    let hex = line_text[offset..]
+                    let hex = line_text
                         .chars()
+                        .skip(offset)
                         .take_while(is_hex_char)
                         .take(9)
                         .collect::<String>();
                     if let Some(node) = match_color(&hex, ix, offset) {
                         nodes.push(node);
-                        offset += hex.len();
+                        offset += hex.chars().count();
                         continue;
                     }
                 }
@@ -148,15 +152,18 @@ pub(super) fn parse(text: &str) -> Vec<ColorNode> {
                         "hsl(" | "hsla(" | "rgb(" | "rgba(" | "hwb(" | "hwba(" | "oklab("
                         | "oklch(" | "lab(" | "lch(" | "hsv(" => {
                             // Find until the closing parenthesis
-                            let end = line_text[offset..]
+                            let end = line_text
                                 .chars()
+                                .skip(offset)
                                 .position(|c| c == ')')
                                 .unwrap_or(0);
-                            let token_offset = offset.saturating_sub(token.len()) + 1;
-                            token.push_str(
-                                &line_text
-                                    [(offset + 1).min(line_len)..(offset + end + 1).min(line_len)],
-                            );
+                            let token_offset = offset.saturating_sub(token.chars().count()) + 1;
+
+                            let range =
+                                (offset + 1).min(line_len)..(offset + end + 1).min(line_len);
+                            for c in line_text.chars().skip(range.start).take(range.len()) {
+                                token.push(c)
+                            }
 
                             if let Some(node) = match_color(&token, ix, token_offset) {
                                 token.clear();
@@ -180,9 +187,9 @@ pub(super) fn parse(text: &str) -> Vec<ColorNode> {
     nodes
 }
 
-fn match_color(part: &str, line_ix: usize, offset: usize) -> Option<ColorNode> {
+fn match_color(part: &str, line_ix: usize, character: usize) -> Option<ColorNode> {
     if let Ok(color) = try_parse_color(part) {
-        Some(ColorNode::new(part, color, line_ix + 1, offset + 1))
+        Some(ColorNode::new(part, color, line_ix, character))
     } else {
         None
     }
@@ -191,6 +198,7 @@ fn match_color(part: &str, line_ix: usize, offset: usize) -> Option<ColorNode> {
 #[cfg(test)]
 mod tests {
     use csscolorparser::Color;
+    use tower_lsp::lsp_types;
 
     use crate::parser::{match_color, parse, try_parse_gpui_color, ColorNode};
 
@@ -218,7 +226,7 @@ mod tests {
 
         assert_eq!(
             match_color("#e7b911", 1, 10),
-            Some(ColorNode::must_parse("#e7b911", 2, 11))
+            Some(ColorNode::must_parse("#e7b911", 1, 10))
         );
     }
 
@@ -260,20 +268,20 @@ mod tests {
     #[test]
     fn test_must_parse() {
         assert_eq!(
-            ColorNode::must_parse("hsla(.2, 0.5, 0.5, 1.)", 10, 12),
+            ColorNode::must_parse("hsla(.2, 0.5, 0.5, 1.)", 9, 11),
             ColorNode {
                 matched: "hsla(.2, 0.5, 0.5, 1.)".to_string(),
                 color: Color::from_hsla(0.2 * 360., 0.5, 0.5, 1.),
-                loc: (10, 12)
+                position: lsp_types::Position::new(9, 11),
             }
         );
 
         assert_eq!(
-            ColorNode::must_parse("rgba(1., 0.5, 0.5, 1.)", 10, 12),
+            ColorNode::must_parse("rgba(1., 0.5, 0.5, 1.)", 9, 11),
             ColorNode {
                 matched: "rgba(1., 0.5, 0.5, 1.)".to_string(),
                 color: Color::new(1., 0.5, 0.5, 1.),
-                loc: (10, 12)
+                position: lsp_types::Position::new(9, 11),
             }
         );
     }
@@ -282,49 +290,50 @@ mod tests {
     fn test_parse() {
         let colors = parse(include_str!("../../tests/test.json"));
 
-        assert_eq!(colors.len(), 8);
-        assert_eq!(colors[0], ColorNode::must_parse("#999", 2, 15));
-        assert_eq!(colors[1], ColorNode::must_parse("#FFFFFF", 3, 18));
-        assert_eq!(colors[2], ColorNode::must_parse("#ff003c99", 4, 13));
-        assert_eq!(colors[3], ColorNode::must_parse("#3cBD00", 5, 15));
+        assert_eq!(colors.len(), 9);
+        assert_eq!(colors[0], ColorNode::must_parse("#999", 1, 14));
+        assert_eq!(colors[1], ColorNode::must_parse("#FFFFFF", 2, 17));
+        assert_eq!(colors[2], ColorNode::must_parse("#ff003c99", 3, 12));
+        assert_eq!(colors[3], ColorNode::must_parse("#3cBD00", 4, 14));
         assert_eq!(
             colors[4],
-            ColorNode::must_parse("rgba(255, 252, 0, 0.5)", 6, 12)
+            ColorNode::must_parse("rgba(255, 252, 0, 0.5)", 5, 11)
         );
         assert_eq!(
             colors[5],
-            ColorNode::must_parse("rgb(100, 200, 100)", 7, 11)
+            ColorNode::must_parse("rgb(100, 200, 100)", 6, 10)
         );
         assert_eq!(
             colors[6],
-            ColorNode::must_parse("hsla(20, 100%, 50%, .5)", 8, 12)
+            ColorNode::must_parse("hsla(20, 100%, 50%, .5)", 7, 11)
         );
         assert_eq!(
             colors[7],
-            ColorNode::must_parse("hsl(225, 100%, 70%)", 9, 11)
+            ColorNode::must_parse("hsl(225, 100%, 70%)", 8, 10)
         );
+        assert_eq!(colors[8], ColorNode::must_parse("#EEAAFF", 9, 9));
 
         let colors = parse(include_str!("../../tests/test.rs"));
         assert_eq!(colors.len(), 5);
         assert_eq!(
             colors[0],
-            ColorNode::must_parse("hsla(0.3, 1.0, 0.5, 1.0)", 1, 10)
+            ColorNode::must_parse("hsla(0.3, 1.0, 0.5, 1.0)", 0, 9)
         );
         assert_eq!(
             colors[1],
-            ColorNode::must_parse("hsla(0.58, 1.0, 0.5, 1.0)", 2, 10)
+            ColorNode::must_parse("hsla(0.58, 1.0, 0.5, 1.0)", 1, 9)
         );
         assert_eq!(
             colors[2],
-            ColorNode::must_parse("hsla(0.85, 0.9, 0.6, 1.0)", 3, 10)
+            ColorNode::must_parse("hsla(0.85, 0.9, 0.6, 1.0)", 2, 9)
         );
         assert_eq!(
             colors[3],
-            ColorNode::must_parse("hsla(0.75, 0.9, 0.65, 1.0)", 4, 13)
+            ColorNode::must_parse("hsla(0.75, 0.9, 0.65, 1.0)", 3, 12)
         );
         assert_eq!(
             colors[4],
-            ColorNode::must_parse("hsla(0.45, 0.7, 0.75, 1.0)", 5, 14)
+            ColorNode::must_parse("hsla(0.45, 0.7, 0.75, 1.0)", 4, 13)
         );
     }
 }
