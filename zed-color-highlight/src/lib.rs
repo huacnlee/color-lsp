@@ -121,10 +121,6 @@ impl ColorHighlightExtension {
         let version_binary_path = format!("{version_dir}/{BIN_NAME}");
 
         if !fs::metadata(&version_binary_path).map_or(false, |stat| stat.is_file()) {
-            dbg!(
-                "------------------------------- Downloading",
-                &version_binary_path
-            );
             update_status(id, Status::Downloading);
             zed::download_file(&asset.download_url, &version_dir, file_type)
                 .map_err(|e| format!("failed to download file: {e}"))?;
