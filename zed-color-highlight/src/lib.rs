@@ -53,13 +53,24 @@ impl ColorHighlightExtension {
                 return Ok(path.clone());
             }
         }
-        let (platform, arch) = zed::current_platform();
 
-        if fs::metadata(BIN_NAME).map_or(false, |stat| stat.is_file()) {
-            update_status(id, Status::None);
-            return Ok(BIN_NAME.to_string());
+        let binary_path = format!("color-lsp-latest/{BIN_NAME}");
+        let has_binary =
+            fs::metadata(&binary_path).map_or(false, |stat| stat.is_file() || stat.is_symlink());
+
+        if has_binary {
+            // silent to check for update.
+            let _ = Self::check_to_update(&binary_path, &id);
+            return Ok(binary_path);
         }
 
+        let version_binary_path = Self::check_to_update(&binary_path, id)?;
+        self.cached_binary_path = Some(version_binary_path.clone());
+        Ok(version_binary_path)
+    }
+
+    fn check_to_update(binary_path: &str, id: &zed::LanguageServerId) -> Result<String> {
+        let (platform, arch) = zed::current_platform();
         update_status(id, Status::CheckingForUpdate);
 
         let release = zed::latest_github_release(
@@ -99,8 +110,10 @@ impl ColorHighlightExtension {
             .find(|asset| asset.name == asset_name)
             .ok_or_else(|| format!("no asset found matching {:?}", asset_name))?;
 
-        let version_dir = format!("color-lsp-{}", release.version);
-        let binary_path = format!("{version_dir}/{BIN_NAME}");
+        let version_dir = binary_path
+            .split_once('/')
+            .map(|s| s.0)
+            .unwrap_or("color-lsp-latest");
 
         if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
             update_status(id, Status::Downloading);
@@ -115,12 +128,10 @@ impl ColorHighlightExtension {
                     fs::remove_dir_all(entry.path()).ok();
                 }
             }
-
             update_status(id, Status::None);
         }
 
-        self.cached_binary_path = Some(binary_path.clone());
-        Ok(binary_path)
+        Ok(binary_path.to_string())
     }
 }
 
