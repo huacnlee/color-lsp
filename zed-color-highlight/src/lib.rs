@@ -54,22 +54,29 @@ impl ColorHighlightExtension {
             }
         }
 
-        let binary_path = format!("color-lsp-latest/{BIN_NAME}");
-        let has_binary =
-            fs::metadata(&binary_path).map_or(false, |stat| stat.is_file() || stat.is_symlink());
-
-        if has_binary {
+        if let Some(binary_path) = Self::check_installed() {
             // silent to check for update.
-            let _ = Self::check_to_update(&binary_path, &id);
+            let _ = Self::check_to_update(&id);
             return Ok(binary_path);
         }
 
-        let version_binary_path = Self::check_to_update(&binary_path, id)?;
+        let version_binary_path = Self::check_to_update(id)?;
         self.cached_binary_path = Some(version_binary_path.clone());
         Ok(version_binary_path)
     }
 
-    fn check_to_update(binary_path: &str, id: &zed::LanguageServerId) -> Result<String> {
+    fn check_installed() -> Option<String> {
+        let entries = fs::read_dir(".").ok()?;
+        for entry in entries.flatten().filter(|entry| entry.path().is_dir()) {
+            let binary_path = entry.path().join(BIN_NAME);
+            if fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
+                return binary_path.to_str().map(|s| s.to_string());
+            }
+        }
+        None
+    }
+
+    fn check_to_update(id: &zed::LanguageServerId) -> Result<String> {
         let (platform, arch) = zed::current_platform();
         update_status(id, Status::CheckingForUpdate);
 
@@ -110,12 +117,14 @@ impl ColorHighlightExtension {
             .find(|asset| asset.name == asset_name)
             .ok_or_else(|| format!("no asset found matching {:?}", asset_name))?;
 
-        let version_dir = binary_path
-            .split_once('/')
-            .map(|s| s.0)
-            .unwrap_or("color-lsp-latest");
+        let version_dir = format!("color-lsp-{}", release.version);
+        let version_binary_path = format!("{version_dir}/{BIN_NAME}");
 
-        if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
+        if !fs::metadata(&version_binary_path).map_or(false, |stat| stat.is_file()) {
+            dbg!(
+                "------------------------------- Downloading",
+                &version_binary_path
+            );
             update_status(id, Status::Downloading);
             zed::download_file(&asset.download_url, &version_dir, file_type)
                 .map_err(|e| format!("failed to download file: {e}"))?;
@@ -128,10 +137,11 @@ impl ColorHighlightExtension {
                     fs::remove_dir_all(entry.path()).ok();
                 }
             }
+
             update_status(id, Status::None);
         }
 
-        Ok(binary_path.to_string())
+        Ok(version_binary_path)
     }
 }
 
