@@ -1,4 +1,4 @@
-use tower_lsp::lsp_types;
+use tower_lsp::lsp_types::Color;
 
 /// Convert lsp_types::Color to markdown to list other color formats (HSLA, HEX, RGBA)
 /// e.g.
@@ -11,7 +11,8 @@ use tower_lsp::lsp_types;
 /// - hsla(0.143, 1., 0.467, 1.)
 /// - rgba(238, 204, 0, 100%)
 /// - rgba(0.933, 0.8, 0., 1.)
-pub(crate) fn color_summary(color: lsp_types::Color) -> String {
+#[allow(unused)]
+pub(crate) fn color_summary(color: Color) -> String {
     let r = (color.red * 255.0).round() as u8;
     let g = (color.green * 255.0).round() as u8;
     let b = (color.blue * 255.0).round() as u8;
@@ -110,11 +111,11 @@ pub(crate) fn rgba_to_hsla(r: u8, g: u8, b: u8, a: u8) -> (f32, f32, f32, f32) {
 #[cfg(test)]
 mod tests {
     use indoc::indoc;
-    use tower_lsp::lsp_types;
+    use tower_lsp::lsp_types::Color;
 
     #[test]
     fn test_color_summary() {
-        let color = lsp_types::Color {
+        let color = Color {
             red: 0.933,
             green: 0.8,
             blue: 0.0,
