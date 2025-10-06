@@ -1,5 +1,5 @@
 use csscolorparser::{Color, ParseColorError};
-use tower_lsp::lsp_types;
+use lsp_types;
 
 #[derive(Debug, Clone)]
 pub struct ColorNode {
@@ -21,7 +21,7 @@ impl ColorNode {
     /// Create a new ColorNode
     ///
     /// `line`, `character` is 0-based
-    fn new(matched: &str, color: Color, line: usize, character: usize) -> Self {
+    pub fn new(matched: &str, color: Color, line: usize, character: usize) -> Self {
         Self {
             matched: matched.to_string(),
             position: lsp_types::Position::new(line as u32, character as u32),
@@ -30,12 +30,12 @@ impl ColorNode {
     }
 
     #[allow(unused)]
-    fn must_parse(matched: &str, line: usize, col: usize) -> Self {
+    pub fn must_parse(matched: &str, line: usize, col: usize) -> Self {
         let color = try_parse_color(matched).expect("The `matched` should be a valid CSS color");
         Self::new(matched, color, line, col)
     }
 
-    pub(crate) fn lsp_color(&self) -> lsp_types::Color {
+    pub fn lsp_color(&self) -> lsp_types::Color {
         lsp_types::Color {
             red: self.color.r,
             green: self.color.g,
@@ -113,7 +113,8 @@ fn is_hex_char(c: &char) -> bool {
     matches!(c, '#' | 'a'..='f' | 'A'..='F' | '0'..='9')
 }
 
-pub(super) fn parse(text: &str) -> Vec<ColorNode> {
+/// Parse the text and return a list of ColorNode
+pub fn parse(text: &str) -> Vec<ColorNode> {
     let mut nodes = Vec::new();
 
     for (ix, line_text) in text.lines().enumerate() {
