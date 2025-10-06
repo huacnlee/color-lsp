@@ -1,5 +1,5 @@
 use csscolorparser::{Color, ParseColorError};
-use lsp_types;
+use tower_lsp::lsp_types;
 
 #[derive(Debug, Clone)]
 pub struct ColorNode {

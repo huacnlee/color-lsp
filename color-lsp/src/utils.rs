@@ -1,4 +1,4 @@
-use lsp_types::Color;
+use tower_lsp::lsp_types::Color;
 
 /// Convert lsp_types::Color to markdown to list other color formats (HSLA, HEX, RGBA)
 /// e.g.
@@ -111,7 +111,7 @@ pub(crate) fn rgba_to_hsla(r: u8, g: u8, b: u8, a: u8) -> (f32, f32, f32, f32) {
 #[cfg(test)]
 mod tests {
     use indoc::indoc;
-    use lsp_types::Color;
+    use tower_lsp::lsp_types::Color;
 
     #[test]
     fn test_color_summary() {
