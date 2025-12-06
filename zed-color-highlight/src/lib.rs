@@ -2,7 +2,6 @@ use std::fs;
 use zed_extension_api::{self as zed, Result};
 
 const GITHUB_REPO: &str = "huacnlee/color-lsp";
-const BIN_NAME: &str = "color-lsp";
 
 struct ColorHighlightExtension {
     cached_binary_path: Option<String>,
@@ -43,7 +42,7 @@ impl ColorHighlightExtension {
         worktree: &zed::Worktree,
     ) -> Result<String> {
         // Check if the binary is already installed by manually checking the path
-        if let Some(path) = worktree.which(BIN_NAME) {
+        if let Some(path) = worktree.which(bin_name()) {
             return Ok(path);
         }
 
@@ -56,7 +55,9 @@ impl ColorHighlightExtension {
 
         if let Some(binary_path) = Self::check_installed() {
             // silent to check for update.
-            let _ = Self::check_to_update(&id);
+            let _ = Self::check_to_update(&id).inspect_err(|_| {
+                update_status(id, Status::None);
+            });
             return Ok(binary_path);
         }
 
@@ -68,8 +69,8 @@ impl ColorHighlightExtension {
     fn check_installed() -> Option<String> {
         let entries = fs::read_dir(".").ok()?;
         for entry in entries.flatten().filter(|entry| entry.path().is_dir()) {
-            let binary_path = entry.path().join(BIN_NAME);
-            if fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
+            let binary_path = entry.path().join(bin_name());
+            if let Ok(true) = fs::metadata(&binary_path).map(|stat| stat.is_file()) {
                 return binary_path.to_str().map(|s| s.to_string());
             }
         }
@@ -118,7 +119,7 @@ impl ColorHighlightExtension {
             .ok_or_else(|| format!("no asset found matching {:?}", asset_name))?;
 
         let version_dir = format!("color-lsp-{}", release.version);
-        let version_binary_path = format!("{version_dir}/{BIN_NAME}");
+        let version_binary_path = format!("{version_dir}/{}", bin_name());
 
         if !fs::metadata(&version_binary_path).map_or(false, |stat| stat.is_file()) {
             update_status(id, Status::Downloading);
@@ -138,6 +139,14 @@ impl ColorHighlightExtension {
         }
 
         Ok(version_binary_path)
+    }
+}
+
+fn bin_name() -> &'static str {
+    if let zed_extension_api::Os::Windows = zed::current_platform().0 {
+        "color-lsp.exe"
+    } else {
+        "color-lsp"
     }
 }
 
