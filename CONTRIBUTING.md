@@ -23,7 +23,8 @@ You must install [zed-extension](https://github.com/zed-industries/zed/tree/main
 ### Release new version
 
 1. Run `cargo set-version` to update version.
-2. Git commit with `git commit -m "Version ${VERSION}"`
-3. Create new tag and push it to GitHub
+2. Update version in `zed-color-highlight\extension.toml`.
+3. Git commit with `git commit -m "Version ${VERSION}"`
+4. Create new tag and push it to GitHub
 
 Then the GitHub Action will automatically publish the release.
