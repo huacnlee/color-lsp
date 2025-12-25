@@ -11,6 +11,8 @@ use tower_lsp::lsp_types::Color;
 /// - hsla(0.143, 1., 0.467, 1.)
 /// - rgba(238, 204, 0, 100%)
 /// - rgba(0.933, 0.8, 0., 1.)
+/// - rgb(0xeecc00)
+/// - rgba(0xeecc00ff)
 #[allow(unused)]
 pub(crate) fn color_summary(color: Color) -> String {
     let r = (color.red * 255.0).round() as u8;
@@ -42,6 +44,15 @@ pub(crate) fn color_summary(color: Color) -> String {
         format_trimmed(hsla.3, 3, false)
     );
 
+    let rgb_gpui = format!("rgb(0x{:02X}{:02X}{:02X})", r, g, b);
+    let rgba_gpui = format!(
+        "rgba(0x{:02X}{:02X}{:02X}{:02X})",
+        r,
+        g,
+        b,
+        (color.alpha * 255.0).round() as u8
+    );
+
     let rgba = format!("rgba({}, {}, {}, {}%)", r, g, b, a / 255 * 100);
     let rgba_float = format!(
         "rgba({}, {}, {}, {})",
@@ -60,7 +71,17 @@ pub(crate) fn color_summary(color: Color) -> String {
 
     format!(
         "Colorspace Formats:\n\n```\n{}\n```\n{}",
-        vec![hex, hex_alpha, hsla_percent, hsla_float, rgba, rgba_float].join("\n"),
+        vec![
+            hex,
+            hex_alpha,
+            hsla_percent,
+            hsla_float,
+            rgb_gpui,
+            rgba_gpui,
+            rgba,
+            rgba_float
+        ]
+        .join("\n"),
         color_link
     )
 }
@@ -133,6 +154,8 @@ mod tests {
                 #EECC00FF
                 hsla(51.4, 100%, 46.7%, 100%)
                 hsla(0.143, 1., 0.467, 1.)
+                rgb(0xeecc00)
+                rgba(0xeecc00ff)
                 rgba(238, 204, 0, 100%)
                 rgba(0.933, 0.8, 0., 1.)
                 ```
