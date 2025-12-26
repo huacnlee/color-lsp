@@ -68,11 +68,16 @@ fn try_parse_gpui_color(s: &str) -> Result<Color, ParseColorError> {
         let fname = &s[..idx].trim_end();
         let is_rgb_or_a = fname.eq_ignore_ascii_case("rgb") || fname.eq_ignore_ascii_case("rgba");
         // Check for GPUIs rgb function (using a regular hex number instead of a string)
+        let color_len = s.len();
         if is_rgb_or_a && &s[idx + 1..idx + 3] == "0x" {
             let hex = &s[idx + 3..];
-            let val1 = u8::from_str_radix(&hex[0..2], 16).unwrap_or(0) as f32 / 255.0;
-            let val2 = u8::from_str_radix(&hex[2..4], 16).unwrap_or(0) as f32 / 255.0;
-            let val3 = u8::from_str_radix(&hex[4..6], 16).unwrap_or(0) as f32 / 255.0;
+            let (Some(c1), Some(c2), Some(c3)) = (&hex.get(0..2), &hex.get(2..4), &hex.get(4..6))
+            else {
+                return Err(ParseColorError::InvalidFunction);
+            };
+            let val1 = u8::from_str_radix(c1, 16).unwrap_or(0) as f32 / 255.0;
+            let val2 = u8::from_str_radix(c2, 16).unwrap_or(0) as f32 / 255.0;
+            let val3 = u8::from_str_radix(c3, 16).unwrap_or(0) as f32 / 255.0;
 
             if fname.eq_ignore_ascii_case("rgb") {
                 return Ok(Color::new(val1, val2, val3, 1.0));
