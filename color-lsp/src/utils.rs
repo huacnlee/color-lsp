@@ -154,8 +154,8 @@ mod tests {
                 #EECC00FF
                 hsla(51.4, 100%, 46.7%, 100%)
                 hsla(0.143, 1., 0.467, 1.)
-                rgb(0xeecc00)
-                rgba(0xeecc00ff)
+                rgb(0xEECC00)
+                rgba(0xEECC00FF)
                 rgba(238, 204, 0, 100%)
                 rgba(0.933, 0.8, 0., 1.)
                 ```
