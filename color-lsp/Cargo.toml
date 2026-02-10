@@ -2,7 +2,7 @@
 name = "color-lsp"
 description = "A document color language server that supports various color formats, such as HEX, RGB, HSL, and named colors."
 license = "MIT"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 
 [dependencies]
