@@ -113,6 +113,10 @@ fn is_hex_char(c: &char) -> bool {
     matches!(c, '#' | 'a'..='f' | 'A'..='F' | '0'..='9')
 }
 
+fn is_hex_digit(c: &char) -> bool {
+    matches!(c, 'a'..='f' | 'A'..='F' | '0'..='9')
+}
+
 /// Parse the text and return a list of ColorNode
 pub fn parse(text: &str) -> Vec<ColorNode> {
     let mut nodes = Vec::new();
@@ -139,6 +143,39 @@ pub fn parse(text: &str) -> Vec<ColorNode> {
                         nodes.push(node);
                         offset += hex.chars().count();
                         continue;
+                    }
+                }
+                '0' => {
+                    token.clear();
+
+                    // Check if this is a Rust hex literal (0x or 0X)
+                    if let Some(next_char) = line_text.chars().nth(offset + 1) {
+                        if next_char == 'x' || next_char == 'X' {
+                            // Find the hex color code
+                            let hex_digits = line_text
+                                .chars()
+                                .skip(offset + 2)
+                                .take_while(is_hex_digit)
+                                .take(8)
+                                .collect::<String>();
+
+                            // Convert 0x format to # format for parsing
+                            if !hex_digits.is_empty()
+                                && (hex_digits.len() == 3
+                                    || hex_digits.len() == 6
+                                    || hex_digits.len() == 8)
+                            {
+                                let hex_color = format!("#{}", hex_digits);
+                                if let Ok(color) = try_parse_color(&hex_color) {
+                                    // Store the original 0x format
+                                    let original = format!("0{}{}", next_char, hex_digits);
+                                    let node = ColorNode::new(&original, color, ix, offset);
+                                    nodes.push(node);
+                                    offset += 2 + hex_digits.chars().count();
+                                    continue;
+                                }
+                            }
+                        }
                     }
                 }
                 'a'..='z' | 'A'..='Z' | '(' => {
@@ -229,6 +266,73 @@ mod tests {
             match_color("#e7b911", 1, 10),
             Some(ColorNode::must_parse("#e7b911", 1, 10))
         );
+
+        // Test Rust hex literals (0x format)
+        let text = "let c1 = 0xFF0000; let c2 = 0x00FF00; let c3 = 0XAABBCC;";
+        let colors = parse(text);
+        assert_eq!(colors.len(), 3);
+    }
+
+    #[test]
+    fn test_parse_rust_hex_format() {
+        // Test 6-digit hex format (RRGGBB)
+        let text = "let red = 0xFF0000;";
+        let colors = parse(text);
+        assert_eq!(colors.len(), 1);
+        assert_eq!(colors[0].matched, "0xFF0000");
+        assert_eq!(colors[0].color.r, 1.0);
+        assert_eq!(colors[0].color.g, 0.0);
+        assert_eq!(colors[0].color.b, 0.0);
+        assert_eq!(colors[0].color.a, 1.0);
+
+        let text = "let green = 0x00FF00;";
+        let colors = parse(text);
+        assert_eq!(colors.len(), 1);
+        assert_eq!(colors[0].matched, "0x00FF00");
+        assert_eq!(colors[0].color.r, 0.0);
+        assert_eq!(colors[0].color.g, 1.0);
+        assert_eq!(colors[0].color.b, 0.0);
+
+        let text = "let blue = 0x0000FF;";
+        let colors = parse(text);
+        assert_eq!(colors.len(), 1);
+        assert_eq!(colors[0].matched, "0x0000FF");
+        assert_eq!(colors[0].color.b, 1.0);
+
+        // Test 8-digit hex format with alpha (RRGGBBAA)
+        let text = "let semi_red = 0xFF000080;";
+        let colors = parse(text);
+        assert_eq!(colors.len(), 1);
+        assert_eq!(colors[0].matched, "0xFF000080");
+        assert_eq!(colors[0].color.r, 1.0);
+        assert_eq!(colors[0].color.a, 0.5019608); // 128/255
+
+        // Test 3-digit hex format (RGB)
+        let text = "let cyan = 0x0FF;";
+        let colors = parse(text);
+        assert_eq!(colors.len(), 1);
+        assert_eq!(colors[0].matched, "0x0FF");
+        assert_eq!(colors[0].color.r, 0.0);
+        assert_eq!(colors[0].color.g, 1.0);
+        assert_eq!(colors[0].color.b, 1.0);
+
+        // Test uppercase 0X
+        let text = "let white = 0XFFFFFF;";
+        let colors = parse(text);
+        assert_eq!(colors.len(), 1);
+        assert_eq!(colors[0].matched, "0XFFFFFF");
+        assert_eq!(colors[0].color.r, 1.0);
+        assert_eq!(colors[0].color.g, 1.0);
+        assert_eq!(colors[0].color.b, 1.0);
+
+        // Test lowercase hex digits
+        let text = "let orange = 0xff6600;";
+        let colors = parse(text);
+        assert_eq!(colors.len(), 1);
+        assert_eq!(colors[0].matched, "0xff6600");
+        assert!((colors[0].color.r - 1.0).abs() < 0.01);
+        assert!((colors[0].color.g - 0.4).abs() < 0.01);
+        assert!((colors[0].color.b - 0.0).abs() < 0.01);
     }
 
     #[test]
