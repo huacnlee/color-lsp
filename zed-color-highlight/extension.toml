@@ -33,5 +33,18 @@ languages = [
     "Ruby",
     "Python",
     "Go",
+    "C",
+    "C++",
+    "ini",
+    "Shell Script",
+    "Bash",
+    "Fish",
+    "Lua",
+    "Zig",
+    "Makefile",
+    "Make",
+    "Dockerfile",
+    "Markdown",
+    "Plain Text",
 ]
 code_action_kinds = []
