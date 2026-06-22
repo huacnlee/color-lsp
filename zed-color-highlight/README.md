@@ -16,6 +16,22 @@ Add the following to your Zed settings:
 }
 ```
 
+Due to a missing feature in the Zed Extension system, it's only enabled by default on a predefined set of languages. (if you want this changed, please upvote the [upstream feature request](https://github.com/zed-industries/zed/discussions/45360))
+
+You can configure Zed to enable ColorLSP on more languages. For example, to enable it on Markdown, you can add to your config:
+
+```jsonc
+{
+  // ...
+  "languages": {
+    "Markdown": {
+      "language-servers": ["...", "color-lsp"],
+    },
+  },
+  // ...
+}
+```
+
 ## License
 
 MIT
